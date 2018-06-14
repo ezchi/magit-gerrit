@@ -78,13 +78,6 @@
 (eval-when-compile
   (require 'cl-lib))
 
-;; Define a defvar-local macro for Emacs < 24.3
-(unless (fboundp 'defvar-local)
-  (defmacro defvar-local (var val &optional docstring)
-    `(progn
-       (defvar ,var ,val ,docstring)
-       (make-variable-buffer-local ',var))))
-
 (defvar-local magit-gerrit-ssh-creds nil
   "Credentials used to execute gerrit commands via ssh of the form ID@Server")
 
@@ -97,17 +90,15 @@
   :type 'key-sequence)
 
 (defun gerrit-command (cmd &rest args)
-  (let ((gcmd (concat
-               "-x -p 29418 "
-               (or magit-gerrit-ssh-creds
-                   (error "`magit-gerrit-ssh-creds' must be set!"))
-               " "
-               "gerrit "
-               cmd
-               " "
-               (mapconcat 'identity args " "))))
-    ;; (message (format "Using cmd: %s" gcmd))
-    gcmd))
+  (concat
+   "-x -p 29418 "
+   (or magit-gerrit-ssh-creds
+       (error "`magit-gerrit-ssh-creds' must be set!"))
+   " "
+   "gerrit "
+   cmd
+   " "
+   (mapconcat 'identity args " ")))
 
 (defun gerrit-query (prj &optional status)
   (gerrit-command "query"
@@ -123,7 +114,7 @@
 (defun gerrit-ssh-cmd (cmd &rest args)
   (apply #'call-process
          "ssh" nil nil nil
-         (split-string (apply #'gerrit-command cmd args))))
+         (split-string (gerrit-command cmd args))))
 
 (defun gerrit-review-abandon (prj rev)
   (gerrit-ssh-cmd "review" "--project" prj "--abandon" rev))
@@ -419,9 +410,6 @@ Succeed even if branch already exist
 
          (branch-remote (and branch (magit-get "branch" branch "remote"))))
 
-    ;; (message "Args: %s "
-    ;;	     (concat rev ":" branch-pub))
-
     (let* ((branch-merge (if (or (null branch-remote)
                                  (string= branch-remote "."))
                              (completing-read
@@ -442,7 +430,6 @@ Succeed even if branch already exist
                          (string-match (rx "refs/heads" (group (one-or-more any)))
                                        branch-merge)
                          (format "refs/%s%s/%s" status (match-string 1 branch-merge) branch))))
-
 
       (when (or (null branch-remote)
                 (string= branch-remote "."))
@@ -502,7 +489,7 @@ Succeed even if branch already exist
   (format "\'\"%s\"\'"
           (read-from-minibuffer "Message: ")))
 
-(defun magit-gerrit-create-branch (branch parent))
+;; (defun magit-gerrit-create-branch (branch parent))
 
 (magit-define-popup magit-gerrit-popup
   "Popup console for magit gerrit commands."
@@ -555,22 +542,20 @@ Succeed even if branch already exist
     (magit-add-section-hook 'magit-status-sections-hook
                             'magit-insert-gerrit-reviews
                             'magit-insert-stashes t t)
-    (add-hook 'magit-create-branch-command-hook
-              'magit-gerrit-create-branch nil t)
-                                        ;(add-hook 'magit-pull-command-hook 'magit-gerrit-pull nil t)
-    (add-hook 'magit-remote-update-command-hook
-              'magit-gerrit-remote-update nil t)
+    ;; (add-hook 'magit-create-branch-command-hook
+    ;;           'magit-gerrit-create-branch nil t)
+    ;; (add-hook 'magit-remote-update-command-hook
+    ;;           'magit-gerrit-remote-update nil t)
     (add-hook 'magit-push-command-hook
               'magit-gerrit-push nil t))
 
    (t
     (remove-hook 'magit-after-insert-stashes-hook
                  'magit-insert-gerrit-reviews t)
-    (remove-hook 'magit-create-branch-command-hook
-                 'magit-gerrit-create-branch t)
-                                        ;(remove-hook 'magit-pull-command-hook 'magit-gerrit-pull t)
-    (remove-hook 'magit-remote-update-command-hook
-                 'magit-gerrit-remote-update t)
+    ;; (remove-hook 'magit-create-branch-command-hook
+    ;;              'magit-gerrit-create-branch t)
+    ;; (remove-hook 'magit-remote-update-command-hook
+    ;;              'magit-gerrit-remote-update t)
     (remove-hook 'magit-push-command-hook
                  'magit-gerrit-push t)))
   (when (called-interactively-p 'any)
@@ -598,11 +583,15 @@ and port is the default gerrit ssh port."
       (magit-gerrit-mode t))))
 
 ;; Hack in dir-local variables that might be set for magit gerrit
-(add-hook 'magit-status-mode-hook #'hack-dir-local-variables-non-file-buffer t)
+;; (add-hook 'magit-status-mode-hook #'hack-dir-local-variables-non-file-buffer t)
 
 ;; Try to auto enable magit-gerrit in the magit-status buffer
-(add-hook 'magit-status-mode-hook #'magit-gerrit-check-enable t)
-(add-hook 'magit-log-mode-hook #'magit-gerrit-check-enable t)
+;; (add-hook 'magit-status-mode-hook #'magit-gerrit-check-enable t)
+;; (add-hook 'magit-log-mode-hook #'magit-gerrit-check-enable t)
+
+;; Enable magit-gerrit on refresh
+(add-hook 'magit-post-refresh-hook #'hack-dir-local-variables-non-file-buffer t)
+(add-hook 'magit-post-refresh-hook #'magit-gerrit-check-enable t)
 
 (provide 'magit-gerrit)
 
