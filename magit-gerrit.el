@@ -442,7 +442,7 @@ Succeed even if branch already exist
 
 (defun magit-gerrit-create-review (args)
   (interactive (list (magit-gerrit-arguments)))
-  (magit-gerrit-push-review 'publish args))
+  (magit-gerrit-push-review 'for args))
 
 (defun magit-gerrit-create-draft ()
   (interactive)
