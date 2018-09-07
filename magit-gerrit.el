@@ -326,6 +326,7 @@ Succeed even if branch already exist
   (magit-gerrit-copy-review t))
 
 (defun magit-insert-gerrit-reviews ()
+  (message "magit-insert-gerrit-reviews is called")
   (magit-gerrit-section 'gerrit-reviews
                         "Reviews:" 'magit-gerrit-wash-reviews
                         (gerrit-query (magit-gerrit-get-project))))
@@ -539,9 +540,9 @@ Succeed even if branch already exist
       (error "You *must* set `magit-gerrit-remote' to a valid Gerrit remote"))
   (cond
    (magit-gerrit-mode
-    (magit-add-section-hook 'magit-status-sections-hook
-                            'magit-insert-gerrit-reviews
-                            'magit-insert-stashes t t)
+    ;; (magit-add-section-hook 'magit-status-sections-hook
+    ;;                         'magit-insert-gerrit-reviews
+    ;;                         'magit-insert-stashes t t)
     ;; (add-hook 'magit-create-branch-command-hook
     ;;           'magit-gerrit-create-branch nil t)
     ;; (add-hook 'magit-remote-update-command-hook
@@ -552,10 +553,10 @@ Succeed even if branch already exist
    (t
     (remove-hook 'magit-after-insert-stashes-hook
                  'magit-insert-gerrit-reviews t)
-    ;; (remove-hook 'magit-create-branch-command-hook
-    ;;              'magit-gerrit-create-branch t)
-    ;; (remove-hook 'magit-remote-update-command-hook
-    ;;              'magit-gerrit-remote-update t)
+    (remove-hook 'magit-create-branch-command-hook
+                 'magit-gerrit-create-branch t)
+    (remove-hook 'magit-remote-update-command-hook
+                 'magit-gerrit-remote-update t)
     (remove-hook 'magit-push-command-hook
                  'magit-gerrit-push t)))
   (when (called-interactively-p 'any)
@@ -591,7 +592,19 @@ and port is the default gerrit ssh port."
 
 ;; Enable magit-gerrit on refresh
 (add-hook 'magit-post-refresh-hook #'hack-dir-local-variables-non-file-buffer t)
-(add-hook 'magit-post-refresh-hook #'magit-gerrit-check-enable t)
+;; (add-hook 'magit-post-refresh-hook #'magit-gerrit-check-enable t)
+
+(defun magit-gerrit-refresh ()
+  "Fetch gerrit info and refresh magit status buffer"
+  (interactive)
+
+  (magit-add-section-hook 'magit-status-sections-hook
+                          'magit-insert-gerrit-reviews
+                          'magit-insert-stashes t)
+  (magit-refresh)
+  (remove-hook 'magit-status-sections-hook
+               'magit-insert-gerrit-reviews))
+
 
 (provide 'magit-gerrit)
 
